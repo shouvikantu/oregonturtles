@@ -1,11 +1,23 @@
-import { Stack } from "expo-router";
+// app/_layout.tsx
+import { Drawer } from 'expo-router/drawer';
 
 export default function RootLayout() {
-  return <Stack>
-    
-    <Stack.Screen name="index" />
-    <Stack.Screen name="details" />
-    
-     </Stack>;
-  
+  return (
+    <Drawer>
+      <Drawer.Screen
+        name="index"
+        options={{
+          drawerLabel: 'Home',
+          title: 'Home',
+        }}
+      />
+      <Drawer.Screen
+        name="details"
+        options={{
+          drawerLabel: 'Details',
+          title: 'Details',
+        }}
+      />
+    </Drawer>
+  );
 }
