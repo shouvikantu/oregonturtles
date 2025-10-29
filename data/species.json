@@ -1,0 +1,127 @@
+[
+  {
+    "id": "western-painted-turtle",
+    "commonName": "Western Painted Turtle",
+    "native": true,
+    "image": "assets/images/painted_turtle.png",
+    "description": [
+      "Head and legs are dark green with yellow lines.",
+      "Bottom shell is red or orange with unique black pattern.",
+      "Top shell varies from olive to brown and is slightly flattened and smooth with red/orange markings along the margin.",
+      "Length ranges based on age with a max length of about 10 inches."
+    ],
+    "habitat": [
+      "Spend most of their time in shallow, slow-moving water of streams, ponds, lakes, wetlands and rivers; preferably with a soft, muddy bottom with vegetation and submerged logs."
+    ],
+    "status": [
+      "A Strategy Species in the Oregon Conservation Strategy (ODFW 2016)."
+    ],
+    "range": [
+      "Found primarily in the Columbia River Basin, and in the northern portion of the Willamette River Basin."
+    ],
+    "regulations": [],
+    "impacts": []
+  },
+  {
+    "id": "northwestern-pond-turtle",
+    "commonName": "Northwestern Pond Turtle",
+    "image": "assets/images/pond_turtle.png",
+    "native": true,
+    "description": [
+      "Lacks bright coloration on bottom shell which is usually a creamy yellow with some dark blotches.",
+      "Top shell ranges in color from dark brown to olive.",
+      "Head and legs are dark brown to olive.",
+      "Grows up to 10 inches long."
+    ],
+    "habitat": [
+      "Inhabits a variety of aquatic habitats, including; ponds, rivers, reservoirs, streams, seasonal wetlands, and flooded gravel pits.",
+      "Not fully aquatic; may spend part of the year, including winter months, in upland forests.",
+      "May bask on rocks and boulders.",
+      "Uses underwater hiding places such as undercut stream banks, mud substrates, logs, and dense patches of aquatic plants to avoid predators."
+    ],
+    "status": [
+      "A Strategy Species in the Oregon Conservation Strategy (ODFW 2016)."
+    ],
+    "range": [
+      "Primarily found west of the Cascades in the Willamette, Umpqua, Rogue, and Klamath River drainages."
+    ],
+    "regulations": [],
+    "impacts": []
+  },
+  {
+    "id": "red-eared-slider",
+    "commonName": "Red-eared Slider",
+    "image": "assets/images/turtle_red_eared.png",
+    "native": false,
+    "description": [
+      "Greenish grey head commonly with a red patch just behind each eye but some individuals lack the red “ear” stripe.",
+      "Top shell dark colored with a black and yellow line pattern, margin edge is serrated.",
+      "Bottom shell yellow with black splotches.",
+      "Yellow stripes along neck and legs."
+    ],
+    "habitat": [
+      "Lives in areas with a calm, warm water source, with lots of aquatic vegetation.",
+      "Found in ponds, lakes, creeks, marshes and streams.",
+      "Thrives in warm climates, especially the southern United States."
+    ],
+    "status": [
+      "Regulated by the Oregon Department of Fish and Wildlife (ODFW) as Prohibited Non-Native Wildlife.",
+      "Illegal to import/bring into Oregon or possess live without a permit from ODFW."
+    ],
+    "range": [
+      "Naturally occurs throughout much of eastern United States."
+    ],
+    "regulations": [
+      "Prohibited Non-Native Wildlife in Oregon; permits required (ODFW)."
+    ],
+    "impacts": [
+      "Use nesting sites similar to native turtles; lay eggs a month earlier, attracting predators to nesting sites.",
+      "Grow larger and lay more eggs than Oregon’s native turtles.",
+      "Compete with native turtles for food, basking and nesting sites, and cover.",
+      "May introduce parasites or diseases to native turtle populations."
+    ]
+  },
+  {
+    "id": "common-snapping-turtle",
+    "commonName": "Common Snapping Turtle",
+    "image": "assets/images/snapping_turtle.png",
+    "native": false,
+    "description": [
+      "Oval shell widens toward the back where it is strongly serrated.",
+      "Shell color varies from tan/brown to olive to almost black.",
+      "Bottom shell (plastron) yellowish, small and cross shaped.",
+      "Top of tail has a series of large triangular plates.",
+      "Adult shell length about 8–14 inches long and weighs 10–35 lbs."
+    ],
+    "habitat": [
+      "Mainly aquatic; prefers warmer, still or slow-moving waterbodies.",
+      "Inhabits ponds, lakes, reservoirs, swamps, streams and rivers.",
+      "In coast areas they are known to inhabit saltwater marshes."
+    ],
+    "status": [
+      "Regulated by the Oregon Department of Fish and Wildlife (ODFW) as Prohibited Non-Native Wildlife.",
+      "Illegal to import/bring into Oregon or possess live without a permit from ODFW."
+    ],
+    "range": [
+      "Native to North America east of the Continental Divide."
+    ],
+    "regulations": [
+      "Prohibited Non-Native Wildlife in Oregon; permits required (ODFW)."
+    ],
+    "impacts": [
+      "Prey on native fish and wildlife including native turtles.",
+      "Compete with native turtles for food, basking and nesting sites, and cover.",
+      "May introduce parasites or diseases to native turtle populations."
+    ]
+  },
+  {
+    "id": "threats-to-native-turtles",
+    "sectionTitle": "Threats to Native Turtles",
+    "notes": [
+      "Both of Oregon’s native turtle species are listed as priority at-risk species.",
+      "Habitat Loss and Degradation: Development and habitat alterations have severely impacted native turtle populations; turtles need areas with slow moving water and the right vegetation.",
+      "Disturbance: Turtles are skittish and easily disturbed by human (and dog) activities.",
+      "Removal From the Wild: People take turtles home as pets, even though they don’t make good pets."
+    ]
+  }
+]
