@@ -69,23 +69,33 @@ type ObservationPhoto = {
   mimeType?: string;
 };
 
+type TurtleDetail = {
+  speciesId: SpeciesId;
+  activities: Record<ActivityOption, boolean>;
+  notes: string;
+};
+
 const createActivityState = () =>
   ACTIVITY_OPTIONS.reduce(
     (acc, option) => ({ ...acc, [option]: false }),
     {} as Record<ActivityOption, boolean>
   );
 
+const createTurtleDetail = (): TurtleDetail => ({
+  speciesId: 'unknown',
+  activities: createActivityState(),
+  notes: '',
+});
+
 export default function ObservationsScreen() {
   const { user } = useAuth();
 
   const [photos, setPhotos] = useState<ObservationPhoto[]>([]);
-  const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId>('unknown');
-  const [activity, setActivity] = useState<Record<ActivityOption, boolean>>(() => createActivityState());
+  const [turtleDetails, setTurtleDetails] = useState<TurtleDetail[]>([createTurtleDetail()]);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [locationName, setLocationName] = useState('');
-  const [count, setCount] = useState('');
-  const [notes, setNotes] = useState('');
+  const [count, setCount] = useState('1');
   const [seenAt, setSeenAt] = useState<Date>(new Date());
   const [actionTaken, setActionTaken] = useState<ActionOption>('Observed');
   const [actionOther, setActionOther] = useState('');
@@ -95,6 +105,7 @@ export default function ObservationsScreen() {
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
+  const [activeActivityDropdown, setActiveActivityDropdown] = useState<number | null>(null);
 
   const displayName = useMemo(() => {
     if (!user) return 'field researcher';
@@ -111,8 +122,71 @@ export default function ObservationsScreen() {
     [seenAt]
   );
 
-  const toggleActivity = (option: ActivityOption) => {
-    setActivity((prev) => ({ ...prev, [option]: !prev[option] }));
+  const syncTurtleDetailCount = (desiredCount: number) => {
+    setTurtleDetails((prev) => {
+      if (desiredCount <= 0) {
+        return [createTurtleDetail()];
+      }
+      if (desiredCount === prev.length) {
+        return prev;
+      }
+      if (desiredCount > prev.length) {
+        return [
+          ...prev,
+          ...Array.from({ length: desiredCount - prev.length }, () => createTurtleDetail()),
+        ];
+      }
+      return prev.slice(0, desiredCount);
+    });
+    setActiveActivityDropdown((prev) => (prev !== null && prev >= desiredCount ? null : prev));
+  };
+
+  const handleCountChange = (value: string) => {
+    const digitsOnly = value.replace(/[^0-9]/g, '');
+    setCount(digitsOnly);
+    if (!digitsOnly) {
+      return;
+    }
+    const parsed = Number.parseInt(digitsOnly, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      syncTurtleDetailCount(parsed);
+    }
+  };
+
+  const updateTurtleDetail = (index: number, partial: Partial<TurtleDetail>) => {
+    setTurtleDetails((prev) =>
+      prev.map((detail, detailIndex) => (detailIndex === index ? { ...detail, ...partial } : detail))
+    );
+  };
+
+  const handleSpeciesSelect = (index: number, speciesId: SpeciesId) => {
+    updateTurtleDetail(index, { speciesId });
+  };
+
+  const toggleTurtleActivity = (index: number, option: ActivityOption) => {
+    setTurtleDetails((prev) =>
+      prev.map((detail, detailIndex) => {
+        if (detailIndex !== index) {
+          return detail;
+        }
+        return {
+          ...detail,
+          activities: { ...detail.activities, [option]: !detail.activities[option] },
+        };
+      })
+    );
+  };
+
+  const toggleActivityDropdown = (index: number) => {
+    setActiveActivityDropdown((prev) => (prev === index ? null : index));
+  };
+
+  const getActivitiesLabel = (detail: TurtleDetail) => {
+    const selected = ACTIVITY_OPTIONS.filter((option) => detail.activities[option]);
+    if (!selected.length) {
+      return 'Select all that apply';
+    }
+    return selected.join(', ');
   };
 
   const addPhotos = (assets: ImagePicker.ImagePickerAsset[]) => {
@@ -267,8 +341,11 @@ export default function ObservationsScreen() {
       return;
     }
 
-    if (!selectedSpecies) {
-      Alert.alert('Species required', 'Select the turtle that best matches what you saw.');
+    if (turtleDetails.length !== countValue) {
+      Alert.alert(
+        'Update turtle details',
+        'The number of turtle sections does not match the count you entered.'
+      );
       return;
     }
 
@@ -314,17 +391,30 @@ export default function ObservationsScreen() {
         }
       }
 
-      const activitiesSelected = ACTIVITY_OPTIONS.filter((option) => activity[option]);
+      const aggregatedActivities = ACTIVITY_OPTIONS.filter((option) =>
+        turtleDetails.some((detail) => detail.activities[option])
+      );
+      const combinedNotes = turtleDetails
+        .map((detail, index) => {
+          const trimmed = detail.notes.trim();
+          if (!trimmed) {
+            return null;
+          }
+          return `Turtle ${index + 1}: ${trimmed}`;
+        })
+        .filter(Boolean)
+        .join('\n');
+      const primarySpecies = turtleDetails[0]?.speciesId ?? 'unknown';
 
       const { error: insertError } = await supabase.from(OBSERVATIONS_TABLE).insert({
         user_id: user.id,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         location_name: locationName.trim() || null,
-        species_id: selectedSpecies,
+        species_id: primarySpecies,
         count: countValue,
-        activities: activitiesSelected,
-        notes: notes.trim() || null,
+        activities: aggregatedActivities,
+        notes: combinedNotes || null,
         seen_at: seenAt.toISOString(),
         action_taken: actionTaken,
         action_other: actionTaken === 'Other' ? actionOther.trim() : null,
@@ -353,10 +443,10 @@ export default function ObservationsScreen() {
       setLocationName('');
       setLatitude('');
       setLongitude('');
-      setCount('');
-      setNotes('');
+      setCount('1');
+      setTurtleDetails([createTurtleDetail()]);
       setSeenAt(new Date());
-      setActivity(createActivityState());
+      setActiveActivityDropdown(null);
       setActionTaken('Observed');
       setActionOther('');
       setAdditionalNotes('');
@@ -496,78 +586,106 @@ export default function ObservationsScreen() {
         <View style={styles.step}>
           <View style={styles.stepHeader}>
             <Text style={styles.stepBadge}>Step 3</Text>
-            <Text style={styles.stepTitle}>Try to identify the turtle(s)</Text>
+            <Text style={styles.stepTitle}>Tell us about each turtle</Text>
           </View>
           <Text style={styles.stepInstruction}>
-            To add a turtle sighting, find the turtle that looks like the one you saw and tap on the
-            picture. If you need help, select the Turtle ID tool. If you still don’t know, choose
-            Unknown Turtle.
+            Start by telling us how many turtles you observed. Then give us species, behaviors, and
+            notes for every turtle you spotted. If you aren’t sure, choose Unknown Turtle.
           </Text>
           <Text style={styles.stepSource}>— oregonturtles.org</Text>
 
-          <View style={styles.speciesList}>
-            {SPECIES_OPTIONS.map((option) => {
-              const isSelected = selectedSpecies === option.id;
-              return (
-                <Pressable
-                  key={option.id}
-                  style={[styles.speciesCard, isSelected && styles.speciesCardSelected]}
-                  onPress={() => setSelectedSpecies(option.id)}
-                >
-                  <View style={[styles.radioOuter, isSelected && styles.radioSelected]}>
-                    {isSelected ? <View style={styles.radioInner} /> : null}
-                  </View>
-                  <View style={styles.speciesContent}>
-                    <Text style={styles.speciesName}>{option.name}</Text>
-                    <Text style={styles.speciesDescription}>{option.description}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-
           <View style={styles.fieldGroup}>
             <View>
-              <Text style={styles.label}>How many?</Text>
+              <Text style={styles.label}>How many turtles did you see?</Text>
               <TextInput
                 placeholder="1"
                 keyboardType="number-pad"
                 style={styles.input}
                 placeholderTextColor="#94a3b8"
                 value={count}
-                onChangeText={setCount}
-              />
-            </View>
-            <View>
-              <Text style={styles.label}>What were they doing?</Text>
-              <View style={styles.checkboxList}>
-                {ACTIVITY_OPTIONS.map((option) => (
-                  <Pressable
-                    key={option}
-                    style={styles.checkboxRow}
-                    onPress={() => toggleActivity(option)}
-                  >
-                    <View style={[styles.checkboxBox, activity[option] && styles.checkboxChecked]}>
-                      {activity[option] ? <View style={styles.checkboxDot} /> : null}
-                    </View>
-                    <Text style={styles.checkboxLabel}>{option}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            <View>
-              <Text style={styles.label}>Notes</Text>
-              <TextInput
-                multiline
-                numberOfLines={4}
-                placeholder="Describe markings, behavior, or anything notable."
-                style={styles.textArea}
-                placeholderTextColor="#94a3b8"
-                value={notes}
-                onChangeText={setNotes}
+                onChangeText={handleCountChange}
               />
             </View>
           </View>
+
+          {turtleDetails.map((detail, index) => {
+            const hasSelectedActivities = ACTIVITY_OPTIONS.some((option) => detail.activities[option]);
+            return (
+              <View key={`turtle-${index}`} style={styles.turtleCard}>
+                <Text style={styles.turtleHeader}>Turtle {index + 1}</Text>
+
+                <Text style={styles.label}>Species of turtle {index + 1}</Text>
+                <View style={styles.speciesList}>
+                  {SPECIES_OPTIONS.map((option) => {
+                    const isSelected = detail.speciesId === option.id;
+                    return (
+                      <Pressable
+                        key={`${option.id}-${index}`}
+                        style={[styles.speciesCard, isSelected && styles.speciesCardSelected]}
+                        onPress={() => handleSpeciesSelect(index, option.id)}
+                      >
+                        <View style={[styles.radioOuter, isSelected && styles.radioSelected]}>
+                          {isSelected ? <View style={styles.radioInner} /> : null}
+                        </View>
+                        <View style={styles.speciesContent}>
+                          <Text style={styles.speciesName}>{option.name}</Text>
+                          <Text style={styles.speciesDescription}>{option.description}</Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <View>
+                  <Text style={styles.label}>What is turtle {index + 1} doing?</Text>
+                  <Pressable
+                    style={[styles.dropdown, activeActivityDropdown === index && styles.dropdownOpen]}
+                    onPress={() => toggleActivityDropdown(index)}
+                  >
+                    <Text
+                      style={[styles.dropdownText, !hasSelectedActivities && styles.dropdownPlaceholder]}
+                    >
+                      {getActivitiesLabel(detail)}
+                    </Text>
+                  </Pressable>
+                  {activeActivityDropdown === index ? (
+                    <View style={styles.dropdownOptions}>
+                      {ACTIVITY_OPTIONS.map((option) => (
+                        <Pressable
+                          key={`${option}-${index}`}
+                          style={styles.checkboxRow}
+                          onPress={() => toggleTurtleActivity(index, option)}
+                        >
+                          <View
+                            style={[
+                              styles.checkboxBox,
+                              detail.activities[option] && styles.checkboxChecked,
+                            ]}
+                          >
+                            {detail.activities[option] ? <View style={styles.checkboxDot} /> : null}
+                          </View>
+                          <Text style={styles.checkboxLabel}>{option}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+
+                <View>
+                  <Text style={styles.label}>Notes about turtle {index + 1}</Text>
+                  <TextInput
+                    multiline
+                    numberOfLines={4}
+                    placeholder="Describe markings, behavior, or anything notable."
+                    style={styles.textArea}
+                    placeholderTextColor="#94a3b8"
+                    value={detail.notes}
+                    onChangeText={(text) => updateTurtleDetail(index, { notes: text })}
+                  />
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <View style={styles.step}>
@@ -904,6 +1022,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#334155',
     flex: 1,
+  },
+  turtleCard: {
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    borderRadius: 16,
+    padding: 16,
+    gap: 16,
+    backgroundColor: '#f8fafc',
+  },
+  turtleHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  dropdown: {
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#fff',
+  },
+  dropdownOpen: {
+    borderColor: '#2563eb',
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: '#0f172a',
+  },
+  dropdownPlaceholder: {
+    color: '#94a3b8',
+  },
+  dropdownOptions: {
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#fff',
+    marginTop: 8,
+    gap: 10,
   },
   radioOuter: {
     width: 22,

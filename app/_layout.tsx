@@ -108,7 +108,7 @@ export default function RootLayout(): ReactNode {
           <Drawer.Protected guard={value.isLoggedIn}>
             <Drawer.Screen
               name="(app)/observations"
-              options={{ title: 'Observations', drawerLabel: 'Observations' }}
+              options={{ title: 'Observations', drawerLabel: ' Record Observations' }}
             />
             <Drawer.Screen
               name="(app)/account"
