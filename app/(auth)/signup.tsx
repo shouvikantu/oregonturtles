@@ -9,8 +9,10 @@ import {
   TextInput,
   View,
   Pressable,
+  Image,
 } from 'react-native';
 import { supabase } from '../../supabase';
+import { useTranslation } from '../../lib/i18n';
 
 export default function SignupScreen() {
   const [firstName, setFirstName] = useState('');
@@ -19,10 +21,11 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   const onSignUp = async () => {
     if (!firstName || !lastName || !email || !password) {
-      Alert.alert('Missing info', 'Please fill out first name, last name, email, and password.');
+      Alert.alert(t('signup.alert.missing.title'), t('signup.alert.missing.body'));
       return;
     }
 
@@ -44,7 +47,7 @@ export default function SignupScreen() {
       });
 
       if (error) {
-        Alert.alert('Sign up failed', error.message);
+        Alert.alert(t('signup.alert.failed.title'), error.message);
         return;
       }
 
@@ -68,14 +71,14 @@ export default function SignupScreen() {
       }
 
       if (!data.session) {
-        Alert.alert('Check your email', 'We sent you a confirmation link to finish sign up.');
+        Alert.alert(t('signup.alert.checkEmail.title'), t('signup.alert.checkEmail.body'));
       } else {
-        Alert.alert('Account created', 'Your account is ready. Please log in.');
+        Alert.alert(t('signup.alert.accountCreated.title'), t('signup.alert.accountCreated.body'));
       }
 
       router.replace('/(auth)/login');
     } catch (e: any) {
-      Alert.alert('Sign up failed', e?.message ?? 'Unknown error');
+      Alert.alert(t('signup.alert.failed.title'), e?.message ?? t('signup.alert.failed.body'));
     } finally {
       setBusy(false);
     }
@@ -84,30 +87,39 @@ export default function SignupScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.heading}>Create your account</Text>
-        <Text style={styles.supporting}>
-          Become part of the network of volunteers and biologists monitoring turtle populations
-          across Oregon.
-        </Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.logoMark}>
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+          <View>
+            <Text style={styles.kicker}>{t('home.kicker')}</Text>
+            <Text style={styles.heading}>{t('signup.title')}</Text>
+          </View>
+        </View>
+        <Text style={styles.supporting}>{t('signup.subtitle')}</Text>
 
         <View style={styles.row}>
           <View style={styles.halfField}>
-            <Text style={styles.label}>First name</Text>
+            <Text style={styles.label}>{t('signup.firstName')}</Text>
             <TextInput
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Jane"
+              placeholder={t('signup.firstNamePlaceholder')}
               autoCapitalize="words"
               style={styles.input}
               placeholderTextColor="#94a3b8"
             />
           </View>
           <View style={styles.halfField}>
-            <Text style={styles.label}>Last name</Text>
+            <Text style={styles.label}>{t('signup.lastName')}</Text>
             <TextInput
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Doe"
+              placeholder={t('signup.lastNamePlaceholder')}
               autoCapitalize="words"
               style={styles.input}
               placeholderTextColor="#94a3b8"
@@ -116,11 +128,11 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Affiliation</Text>
+          <Text style={styles.label}>{t('signup.affiliation')}</Text>
           <TextInput
             value={affiliation}
             onChangeText={setAffiliation}
-            placeholder="Oregon Dept. of Fish & Wildlife"
+            placeholder={t('signup.affiliationPlaceholder')}
             autoCapitalize="words"
             style={styles.input}
             placeholderTextColor="#94a3b8"
@@ -128,11 +140,11 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Email address</Text>
+          <Text style={styles.label}>{t('signup.email')}</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.org"
+            placeholder={t('signup.emailPlaceholder')}
             autoCapitalize="none"
             keyboardType="email-address"
             style={styles.input}
@@ -141,11 +153,11 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('signup.password')}</Text>
           <TextInput
             value={password}
             onChangeText={setPassword}
-            placeholder="Create a password"
+            placeholder={t('signup.passwordPlaceholder')}
             secureTextEntry
             style={styles.input}
             placeholderTextColor="#94a3b8"
@@ -157,14 +169,16 @@ export default function SignupScreen() {
           disabled={busy}
           style={[styles.primaryButton, busy && styles.primaryButtonDisabled]}
         >
-          <Text style={styles.primaryButtonText}>{busy ? 'Creating account…' : 'Sign up'}</Text>
+          <Text style={styles.primaryButtonText}>
+            {busy ? t('signup.loading') : t('signup.button')}
+          </Text>
         </Pressable>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account?</Text>
+          <Text style={styles.footerText}>{t('signup.footerPrompt')}</Text>
           <Link href="/(auth)/login" asChild>
             <Pressable>
-              <Text style={styles.footerLink}>Log in</Text>
+              <Text style={styles.footerLink}>{t('signup.footerLink')}</Text>
             </Pressable>
           </Link>
         </View>
@@ -177,28 +191,53 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#e9f3ec',
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: '#f7fbf8',
+    borderRadius: 18,
     padding: 24,
     gap: 16,
-    shadowColor: '#020617',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 8,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#cde5d5',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoMark: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#ecfeff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#99f6e4',
+  },
+  logo: { width: 32, height: 32 },
+  kicker: {
+    color: '#1f4e37',
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    fontSize: 12,
   },
   heading: {
     fontSize: 26,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '800',
+    color: '#0f2f24',
   },
   supporting: {
     fontSize: 15,
-    color: '#475569',
+    color: '#1f3c2f',
     lineHeight: 22,
   },
   field: {
@@ -215,29 +254,31 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#0f2f24',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     color: '#0f172a',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f0f7f2',
   },
   primaryButton: {
-    backgroundColor: '#16a34a',
+    backgroundColor: '#166534',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#0f3f2d',
   },
   primaryButtonDisabled: {
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: '#f0fdf4',
+    color: '#ecfdf3',
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.3,
@@ -248,10 +289,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footerText: {
-    color: '#475569',
+    color: '#1f3c2f',
   },
   footerLink: {
-    color: '#16a34a',
+    color: '#0f766e',
     fontWeight: '600',
   },
 });

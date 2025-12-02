@@ -11,20 +11,29 @@ import {
 } from 'react-native';
 
 import { findSpeciesById, getSpeciesImage } from '../../lib/species';
+import { useTranslation } from '../../lib/i18n';
+
+const SPECIES_NAME_KEYS: Record<string, string> = {
+  'red-eared-slider': 'observations.species.redEaredSlider.name',
+  'western-painted-turtle': 'observations.species.westernPainted.name',
+  'northwestern-pond-turtle': 'observations.species.northwesternPond.name',
+  'common-snapping-turtle': 'observations.species.commonSnapping.name',
+};
 
 export default function SpeciesDetail() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const speciesIdParam = params.id;
   const speciesId = Array.isArray(speciesIdParam) ? speciesIdParam[0] : speciesIdParam;
   const species = speciesId ? findSpeciesById(speciesId) : undefined;
+  const { t } = useTranslation();
 
   if (!species) {
     return (
       <View style={styles.missing}>
-        <Text style={styles.missingText}>Species not found.</Text>
+        <Text style={styles.missingText}>{t('species.detail.missing')}</Text>
         <Link href="/species" asChild>
           <Pressable style={styles.backButton}>
-            <Text style={styles.backButtonText}>Return to field guide</Text>
+            <Text style={styles.backButtonText}>{t('species.detail.return')}</Text>
           </Pressable>
         </Link>
       </View>
@@ -35,36 +44,40 @@ export default function SpeciesDetail() {
     if (!species.source_url) return;
     Linking.openURL(species.source_url).catch(() => {});
   };
+  const displayName =
+    (species && SPECIES_NAME_KEYS[species.id] && t(SPECIES_NAME_KEYS[species.id] as any)) ||
+    species?.commonName ||
+    '';
 
   return (
     <>
-      <Stack.Screen options={{ title: species.commonName }} />
+      <Stack.Screen options={{ title: displayName }} />
       <ScrollView contentContainerStyle={styles.container}>
         <Link href="/species" asChild>
           <Pressable style={styles.inlineBack}>
-            <Text style={styles.inlineBackText}>← Back to species</Text>
+            <Text style={styles.inlineBackText}>{t('species.detail.back')}</Text>
           </Pressable>
         </Link>
 
         <View style={styles.card}>
           <Image source={getSpeciesImage(species.image)} style={styles.image} resizeMode="cover" />
           <View style={styles.header}>
-            <Text style={styles.title}>{species.commonName}</Text>
+            <Text style={styles.title}>{displayName}</Text>
             <Text style={[styles.badge, species.native ? styles.native : styles.nonNative]}>
-              {species.native ? 'Native species' : 'Non-native species'}
+              {species.native ? t('species.detail.native') : t('species.detail.nonNative')}
             </Text>
           </View>
 
-          <Section title="Description" items={species.description} />
-          <Section title="Habitat" items={species.habitat} />
-          <Section title="Status" items={species.status} />
-          <Section title="Range" items={species.range} />
-          <Section title="Impacts" items={species.impacts} />
-          <Section title="Regulations" items={species.regulations} />
+          <Section title={t('species.detail.description')} items={species.description} />
+          <Section title={t('species.detail.habitat')} items={species.habitat} />
+          <Section title={t('species.detail.status')} items={species.status} />
+          <Section title={t('species.detail.range')} items={species.range} />
+          <Section title={t('species.detail.impacts')} items={species.impacts} />
+          <Section title={t('species.detail.regulations')} items={species.regulations} />
 
           {species.source_url ? (
             <Pressable onPress={handleSourcePress}>
-              <Text style={styles.link}>Source: {species.source_url}</Text>
+              <Text style={styles.link}>{t('species.detail.source', { url: species.source_url })}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -91,7 +104,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 24,
     gap: 16,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#e9f3ec',
   },
   missing: {
     flex: 1,
@@ -110,16 +123,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#166534',
   },
   inlineBackText: {
-    color: '#fff',
+    color: '#ecfdf3',
     fontWeight: '600',
     fontSize: 13,
     letterSpacing: 0.4,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f7fbf8',
     borderRadius: 20,
     overflow: 'hidden',
     gap: 16,
@@ -129,11 +142,13 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 12 },
     elevation: 5,
+    borderWidth: 1,
+    borderColor: '#cde5d5',
   },
   image: {
     width: '100%',
     height: 240,
-    backgroundColor: '#cbd5f5',
+    backgroundColor: '#d9eadf',
   },
   header: {
     paddingHorizontal: 20,
@@ -142,7 +157,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#0f2f24',
   },
   badge: {
     fontSize: 14,
@@ -151,10 +166,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   native: {
-    color: '#047857',
+    color: '#0f766e',
   },
   nonNative: {
-    color: '#b91c1c',
+    color: '#9a3412',
   },
   sectionBlock: {
     paddingHorizontal: 20,
@@ -164,17 +179,17 @@ const styles = StyleSheet.create({
   section: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#0f2f24',
   },
   item: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#334155',
+    color: '#1f3c2f',
   },
   link: {
     marginTop: 12,
     paddingHorizontal: 20,
-    color: '#2563eb',
+    color: '#0f766e',
     fontSize: 14,
     fontWeight: '600',
     textDecorationLine: 'underline',
@@ -183,10 +198,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#166534',
   },
   backButtonText: {
-    color: '#fff',
+    color: '#ecfdf3',
     fontWeight: '700',
   },
 });

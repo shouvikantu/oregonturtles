@@ -5,36 +5,45 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import SpeciesCard from '../../components/SpeciesCard';
 import { listSpeciesWithImages } from '../../lib/species';
 import type { SpeciesWithImage } from '../../types/species';
+import { useTranslation } from '../../lib/i18n';
 
 const SPECIES = listSpeciesWithImages();
+const SPECIES_NAME_KEYS: Record<string, string> = {
+  'red-eared-slider': 'observations.species.redEaredSlider.name',
+  'western-painted-turtle': 'observations.species.westernPainted.name',
+  'northwestern-pond-turtle': 'observations.species.northwesternPond.name',
+  'common-snapping-turtle': 'observations.species.commonSnapping.name',
+};
 
 export default function SpeciesIndex() {
+  const { t } = useTranslation();
   const renderSpecies = useCallback(
     ({ item }: { item: SpeciesWithImage }) => (
-      <SpeciesCard id={item.id} name={item.commonName} image={item.imageSource} />
+      <SpeciesCard
+        id={item.id}
+        name={SPECIES_NAME_KEYS[item.id] ? t(SPECIES_NAME_KEYS[item.id] as any) : item.commonName}
+        image={item.imageSource}
+      />
     ),
-    []
+    [t]
   );
 
   const renderSeparator = useCallback(() => <View style={styles.separator} />, []);
 
   const renderEmpty = useCallback(
-    () => <Text style={styles.emptyState}>No species available yet.</Text>,
-    []
+    () => <Text style={styles.emptyState}>{t('species.index.empty')}</Text>,
+    [t]
   );
 
   const renderHeader = useCallback(
     () => (
       <View style={styles.header}>
-        <Text style={styles.kicker}>Field guide</Text>
-        <Text style={styles.title}>Native & notable turtles</Text>
-        <Text style={styles.subtitle}>
-          Tap a species to learn key identification tips, habitat preferences, and management
-          guidance.
-        </Text>
+        <Text style={styles.kicker}>{t('species.index.kicker')}</Text>
+        <Text style={styles.title}>{t('species.index.title')}</Text>
+        <Text style={styles.subtitle}>{t('species.index.subtitle')}</Text>
       </View>
     ),
-    []
+    [t]
   );
 
   return (
@@ -54,19 +63,19 @@ export default function SpeciesIndex() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, flex: 1, backgroundColor: '#e2e8f0' },
+  container: { padding: 24, flex: 1, backgroundColor: '#e9f3ec' },
   grid: { gap: 20, paddingBottom: 40 },
   separator: { height: 20 },
   centerEmpty: { flexGrow: 1, justifyContent: 'center' },
-  emptyState: { textAlign: 'center', color: '#475569', fontSize: 16 },
+  emptyState: { textAlign: 'center', color: '#1f3c2f', fontSize: 16 },
   header: { marginBottom: 8, gap: 10, marginRight: 12 },
   kicker: {
     textTransform: 'uppercase',
-    color: '#475569',
-    fontWeight: '600',
+    color: '#1f4e37',
+    fontWeight: '700',
     letterSpacing: 1.4,
     fontSize: 13,
   },
-  title: { fontSize: 28, fontWeight: '700', color: '#0f172a' },
-  subtitle: { fontSize: 16, lineHeight: 22, color: '#334155' },
+  title: { fontSize: 28, fontWeight: '800', color: '#0f2f24' },
+  subtitle: { fontSize: 16, lineHeight: 22, color: '#1f3c2f' },
 });

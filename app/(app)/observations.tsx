@@ -4,8 +4,8 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,36 +21,38 @@ import {
   View,
 } from 'react-native';
 
+import { useTranslation } from '../../lib/i18n';
 import { supabase } from '../../supabase';
 import { useAuth } from '../_layout';
+
 
 const ACTIVITY_OPTIONS = ['Basking', 'Nesting', 'Walking', 'Swimming', 'Other'] as const;
 
 const SPECIES_OPTIONS = [
   {
     id: 'red-eared-slider',
-    name: 'Red-eared Slider',
-    description: 'Non-native, yellow stripes with a red patch behind the eye.',
+    nameKey: 'observations.species.redEaredSlider.name',
+    descriptionKey: 'observations.species.redEaredSlider.description',
   },
   {
     id: 'western-painted-turtle',
-    name: 'Western Painted Turtle',
-    description: 'Native, bright plastron with red/orange edging.',
+    nameKey: 'observations.species.westernPainted.name',
+    descriptionKey: 'observations.species.westernPainted.description',
   },
   {
     id: 'northwestern-pond-turtle',
-    name: 'Northwestern (Western) Pond Turtle',
-    description: 'Native, muted brown/olive shell with creamy yellow underside.',
+    nameKey: 'observations.species.northwesternPond.name',
+    descriptionKey: 'observations.species.northwesternPond.description',
   },
   {
     id: 'common-snapping-turtle',
-    name: 'Common Snapping Turtle',
-    description: 'Non-native, powerful beak, rugged shell, ridged tail.',
+    nameKey: 'observations.species.commonSnapping.name',
+    descriptionKey: 'observations.species.commonSnapping.description',
   },
   {
     id: 'unknown',
-    name: 'Unknown Turtle',
-    description: 'Not sure? Choose this and add clues in the notes.',
+    nameKey: 'observations.species.unknown.name',
+    descriptionKey: 'observations.species.unknown.description',
   },
 ] as const;
 
@@ -89,6 +91,7 @@ const createTurtleDetail = (): TurtleDetail => ({
 
 export default function ObservationsScreen() {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const [photos, setPhotos] = useState<ObservationPhoto[]>([]);
   const [turtleDetails, setTurtleDetails] = useState<TurtleDetail[]>([createTurtleDetail()]);
@@ -108,18 +111,42 @@ export default function ObservationsScreen() {
   const [activeActivityDropdown, setActiveActivityDropdown] = useState<number | null>(null);
 
   const displayName = useMemo(() => {
-    if (!user) return 'field researcher';
+    if (!user) return t('common.fieldResearcher');
     const metadata = user.user_metadata ?? {};
     return (
       metadata.full_name ||
       metadata.name ||
-      (user.email ? user.email.split('@')[0] : 'field researcher')
+      (user.email ? user.email.split('@')[0] : t('common.fieldResearcher'))
     );
-  }, [user]);
+  }, [t, user]);
 
   const formattedSeenAt = useMemo(
     () => seenAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
     [seenAt]
+  );
+
+  const activityLabel = (option: ActivityOption) =>
+    t(`observations.activity.${option}` as const);
+
+  const actionLabels = useMemo(
+    () => ({
+      Observed: t('observations.action.observed'),
+      Moved: t('observations.action.moved'),
+      Collected: t('observations.action.collected'),
+      'Called local agency': t('observations.action.called'),
+      Other: t('observations.action.other'),
+    }),
+    [t]
+  );
+
+  const speciesOptions = useMemo(
+    () =>
+      SPECIES_OPTIONS.map((option) => ({
+        ...option,
+        translatedName: t(option.nameKey as any),
+        translatedDescription: t(option.descriptionKey as any),
+      })),
+    [t]
   );
 
   const syncTurtleDetailCount = (desiredCount: number) => {
@@ -182,9 +209,9 @@ export default function ObservationsScreen() {
   };
 
   const getActivitiesLabel = (detail: TurtleDetail) => {
-    const selected = ACTIVITY_OPTIONS.filter((option) => detail.activities[option]);
+    const selected = ACTIVITY_OPTIONS.filter((option) => detail.activities[option]).map(activityLabel);
     if (!selected.length) {
-      return 'Select all that apply';
+      return t('observations.dropdown.placeholder');
     }
     return selected.join(', ');
   };
@@ -209,7 +236,10 @@ export default function ObservationsScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission needed', 'Media library access is required to pick photos.');
+        Alert.alert(
+          t('observations.alert.permission.library.title'),
+          t('observations.alert.permission.library.body')
+        );
         return;
       }
 
@@ -223,7 +253,10 @@ export default function ObservationsScreen() {
         addPhotos(result.assets);
       }
     } catch (error: any) {
-      Alert.alert('Photo picker error', error?.message ?? 'Unable to pick images right now.');
+      Alert.alert(
+        t('observations.alert.photoPickerError.title'),
+        error?.message ?? t('observations.alert.photoPickerError.body')
+      );
     } finally {
       setIsPickingPhoto(false);
     }
@@ -234,7 +267,10 @@ export default function ObservationsScreen() {
     try {
       const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
       if (!cameraPermission.granted) {
-        Alert.alert('Permission needed', 'Camera access is required to take photos.');
+        Alert.alert(
+          t('observations.alert.permission.camera.title'),
+          t('observations.alert.permission.camera.body')
+        );
         return;
       }
 
@@ -247,7 +283,10 @@ export default function ObservationsScreen() {
         addPhotos(result.assets);
       }
     } catch (error: any) {
-      Alert.alert('Camera error', error?.message ?? 'Unable to open the camera right now.');
+      Alert.alert(
+        t('observations.alert.cameraError.title'),
+        error?.message ?? t('observations.alert.cameraError.body')
+      );
     } finally {
       setIsPickingPhoto(false);
     }
@@ -262,7 +301,10 @@ export default function ObservationsScreen() {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission needed', 'Location access is required to fill coordinates.');
+        Alert.alert(
+          t('observations.alert.permission.location.title'),
+          t('observations.alert.permission.location.body')
+        );
         return;
       }
 
@@ -272,7 +314,10 @@ export default function ObservationsScreen() {
       setLatitude(position.coords.latitude.toFixed(6));
       setLongitude(position.coords.longitude.toFixed(6));
     } catch (error: any) {
-      Alert.alert('Location error', error?.message ?? 'Unable to fetch your location.');
+      Alert.alert(
+        t('observations.alert.locationError.title'),
+        error?.message ?? t('observations.alert.locationError.body')
+      );
     } finally {
       setIsLocating(false);
     }
@@ -318,39 +363,33 @@ export default function ObservationsScreen() {
 
   const handleSubmit = async () => {
     if (!user) {
-      Alert.alert('Sign in required', 'Log in to record an observation.');
+      Alert.alert(t('observations.alert.signIn.title'), t('observations.alert.signIn.body'));
       return;
     }
 
     if (!photos.length) {
-      Alert.alert('Add photos', 'Please attach at least one clear photo of the turtle(s).');
+      Alert.alert(t('observations.alert.photos.title'), t('observations.alert.photos.body'));
       return;
     }
 
     if (!latitude || !longitude) {
-      Alert.alert(
-        'Location needed',
-        'Add coordinates of the sighting or use the current location shortcut.'
-      );
+      Alert.alert(t('observations.alert.location.title'), t('observations.alert.location.body'));
       return;
     }
 
     const countValue = Number.parseInt(count, 10);
     if (Number.isNaN(countValue) || countValue <= 0) {
-      Alert.alert('Check turtle count', 'Enter how many turtles you observed (use whole numbers).');
+      Alert.alert(t('observations.alert.count.title'), t('observations.alert.count.body'));
       return;
     }
 
     if (turtleDetails.length !== countValue) {
-      Alert.alert(
-        'Update turtle details',
-        'The number of turtle sections does not match the count you entered.'
-      );
+      Alert.alert(t('observations.alert.turtleMismatch.title'), t('observations.alert.turtleMismatch.body'));
       return;
     }
 
     if (actionTaken === 'Other' && !actionOther.trim()) {
-      Alert.alert('Add action details', 'Describe the action you took.');
+      Alert.alert(t('observations.alert.actionOther.title'), t('observations.alert.actionOther.body'));
       return;
     }
 
@@ -391,47 +430,51 @@ export default function ObservationsScreen() {
         }
       }
 
-      const aggregatedActivities = ACTIVITY_OPTIONS.filter((option) =>
-        turtleDetails.some((detail) => detail.activities[option])
-      );
-      const combinedNotes = turtleDetails
-        .map((detail, index) => {
-          const trimmed = detail.notes.trim();
-          if (!trimmed) {
-            return null;
-          }
-          return `Turtle ${index + 1}: ${trimmed}`;
-        })
-        .filter(Boolean)
-        .join('\n');
-      const primarySpecies = turtleDetails[0]?.speciesId ?? 'unknown';
-
-      const { error: insertError } = await supabase.from(OBSERVATIONS_TABLE).insert({
+      const baseObservation = {
         user_id: user.id,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         location_name: locationName.trim() || null,
-        species_id: primarySpecies,
         count: countValue,
-        activities: aggregatedActivities,
-        notes: combinedNotes || null,
         seen_at: seenAt.toISOString(),
         action_taken: actionTaken,
         action_other: actionTaken === 'Other' ? actionOther.trim() : null,
         additional_notes: additionalNotes.trim() || null,
         photo_urls: fileUrls,
+      };
+
+      const observationsToInsert = turtleDetails.map((detail, index) => {
+        const selectedActivities = ACTIVITY_OPTIONS.filter((option) => detail.activities[option]);
+        const trimmedNotes = detail.notes.trim();
+        const noteLabel = t('observations.notePrefix', { number: index + 1 });
+
+        return {
+          ...baseObservation,
+          species_id: detail.speciesId,
+          activities: selectedActivities.length ? selectedActivities : null,
+          notes:
+            trimmedNotes.length > 0
+              ? `${noteLabel}: ${trimmedNotes}`
+              : countValue > 1
+              ? noteLabel
+              : null,
+        };
       });
+
+      const { error: insertError } = await supabase
+        .from(OBSERVATIONS_TABLE)
+        .insert(observationsToInsert);
 
       if (insertError) {
         throw insertError;
       }
 
       Alert.alert(
-        'Observation submitted',
-        'Thank you for supporting Oregon’s turtles!',
+        t('observations.alert.submissionSuccess.title'),
+        t('observations.alert.submissionSuccess.body'),
         [
           {
-            text: 'Go home',
+            text: t('observations.alert.submissionSuccess.cta'),
             style: 'default',
             onPress: () => router.replace('/'),
           },
@@ -452,8 +495,8 @@ export default function ObservationsScreen() {
       setAdditionalNotes('');
     } catch (error: any) {
       Alert.alert(
-        'Submission error',
-        error?.message ?? 'We could not save your observation right now.'
+        t('observations.alert.submissionError.title'),
+        error?.message ?? t('observations.alert.submissionError.body')
       );
     } finally {
       setIsSubmitting(false);
@@ -464,29 +507,23 @@ export default function ObservationsScreen() {
     <>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.hero}>
-          <Text style={styles.kicker}>Observation log</Text>
-          <Text style={styles.title}>Share your sighting</Text>
-          <Text style={styles.subtitle}>
-            Thanks, {displayName}. Follow these steps so our biologists can verify and protect turtle
-            habitats.
-          </Text>
+          <Text style={styles.kicker}>{t('observations.hero.kicker')}</Text>
+          <Text style={styles.title}>{t('observations.hero.title')}</Text>
+          <Text style={styles.subtitle}>{t('observations.hero.subtitle', { name: displayName })}</Text>
         </View>
 
         {/* Step 1 */}
         <View style={styles.step}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepBadge}>Step 1</Text>
-            <Text style={styles.stepTitle}>Upload photo(s)</Text>
+            <Text style={styles.stepBadge}>{t('observations.stepLabel', { number: 1 })}</Text>
+            <Text style={styles.stepTitle}>{t('observations.step1.title')}</Text>
           </View>
-          <Text style={styles.stepInstruction}>
-            Make sure much of the turtle(s) is/are visible including head and belly. If you find
-            multiple turtles at once, make sure to include them all.
-          </Text>
-          <Text style={styles.stepSource}>— oregonturtles.org</Text>
+          <Text style={styles.stepInstruction}>{t('observations.step1.instruction')}</Text>
+          <Text style={styles.stepSource}>{t('observations.step.source')}</Text>
           <View style={styles.warningBox}>
-            <Text style={styles.warningTitle}>Warning</Text>
-            <Text style={styles.warningCopy}>DO NOT DISTURB THE TURTLE(S) WHILE TAKING PICTURES</Text>
-            <Text style={styles.stepSource}>— oregonturtles.org</Text>
+            <Text style={styles.warningTitle}>{t('observations.step1.warningTitle')}</Text>
+            <Text style={styles.warningCopy}>{t('observations.step1.warningCopy')}</Text>
+            <Text style={styles.stepSource}>{t('observations.step.source')}</Text>
           </View>
           <View style={styles.buttonRow}>
             <Pressable
@@ -495,7 +532,7 @@ export default function ObservationsScreen() {
               disabled={isPickingPhoto}
             >
               <Text style={styles.uploadButtonText}>
-                {isPickingPhoto ? 'Opening library…' : 'Choose from library'}
+                {isPickingPhoto ? t('observations.photos.choose') : t('observations.photos.choose')}
               </Text>
             </Pressable>
             <Pressable
@@ -504,7 +541,7 @@ export default function ObservationsScreen() {
               disabled={isPickingPhoto}
             >
               <Text style={[styles.uploadButtonText, styles.primaryUploadButtonText]}>
-                {isPickingPhoto ? 'Launching camera…' : 'Take a photo'}
+                {isPickingPhoto ? t('observations.photos.take') : t('observations.photos.take')}
               </Text>
             </Pressable>
           </View>
@@ -514,7 +551,7 @@ export default function ObservationsScreen() {
                 <View key={`${photo.uri}-${index}`} style={styles.photoItem}>
                   <Image source={{ uri: photo.uri }} style={styles.photo} />
                   <Pressable style={styles.photoRemove} onPress={() => removePhoto(index)}>
-                    <Text style={styles.photoRemoveText}>Remove</Text>
+                    <Text style={styles.photoRemoveText}>{t('observations.photos.remove')}</Text>
                   </Pressable>
                 </View>
               ))}
@@ -525,14 +562,11 @@ export default function ObservationsScreen() {
         {/* Step 2 */}
         <View style={styles.step}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepBadge}>Step 2</Text>
-            <Text style={styles.stepTitle}>Where did you see the turtle(s)?</Text>
+            <Text style={styles.stepBadge}>{t('observations.stepLabel', { number: 2 })}</Text>
+            <Text style={styles.stepTitle}>{t('observations.step2.title')}</Text>
           </View>
-          <Text style={styles.stepInstruction}>
-            Navigate to the location using the map and drop a pin there. Zoom in to be as accurate as
-            possible.
-          </Text>
-          <Text style={styles.stepSource}>— oregonturtles.org</Text>
+          <Text style={styles.stepInstruction}>{t('observations.step2.instruction')}</Text>
+          <Text style={styles.stepSource}>{t('observations.step.source')}</Text>
           <Pressable
             style={[styles.uploadButton, styles.secondaryButton]}
             onPress={handleUseCurrentLocation}
@@ -541,15 +575,15 @@ export default function ObservationsScreen() {
             {isLocating ? (
               <ActivityIndicator color="#1e3a8a" />
             ) : (
-              <Text style={styles.secondaryButtonText}>Use my current location</Text>
+              <Text style={styles.secondaryButtonText}>{t('observations.location.useCurrent')}</Text>
             )}
           </Pressable>
           <View style={styles.fieldGroup}>
             <View style={styles.fieldRow}>
               <View style={styles.fieldHalf}>
-                <Text style={styles.label}>Latitude</Text>
+                <Text style={styles.label}>{t('observations.location.latitude')}</Text>
                 <TextInput
-                  placeholder="45.5231"
+                  placeholder={t('observations.location.latPlaceholder')}
                   keyboardType="decimal-pad"
                   style={styles.input}
                   placeholderTextColor="#94a3b8"
@@ -558,9 +592,9 @@ export default function ObservationsScreen() {
                 />
               </View>
               <View style={styles.fieldHalf}>
-                <Text style={styles.label}>Longitude</Text>
+                <Text style={styles.label}>{t('observations.location.longitude')}</Text>
                 <TextInput
-                  placeholder="-122.6765"
+                  placeholder={t('observations.location.lonPlaceholder')}
                   keyboardType="decimal-pad"
                   style={styles.input}
                   placeholderTextColor="#94a3b8"
@@ -570,9 +604,9 @@ export default function ObservationsScreen() {
               </View>
             </View>
             <View>
-              <Text style={styles.label}>Location name (optional)</Text>
+              <Text style={styles.label}>{t('observations.location.nameLabel')}</Text>
               <TextInput
-                placeholder="Crystal Springs Rhododendron Garden"
+                placeholder={t('observations.location.namePlaceholder')}
                 style={styles.input}
                 placeholderTextColor="#94a3b8"
                 value={locationName}
@@ -585,20 +619,17 @@ export default function ObservationsScreen() {
         {/* Step 3 */}
         <View style={styles.step}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepBadge}>Step 3</Text>
-            <Text style={styles.stepTitle}>Tell us about each turtle</Text>
+            <Text style={styles.stepBadge}>{t('observations.stepLabel', { number: 3 })}</Text>
+            <Text style={styles.stepTitle}>{t('observations.step3.title')}</Text>
           </View>
-          <Text style={styles.stepInstruction}>
-            Start by telling us how many turtles you observed. Then give us species, behaviors, and
-            notes for every turtle you spotted. If you aren’t sure, choose Unknown Turtle.
-          </Text>
-          <Text style={styles.stepSource}>— oregonturtles.org</Text>
+          <Text style={styles.stepInstruction}>{t('observations.step3.instruction')}</Text>
+          <Text style={styles.stepSource}>{t('observations.step.source')}</Text>
 
           <View style={styles.fieldGroup}>
             <View>
-              <Text style={styles.label}>How many turtles did you see?</Text>
+              <Text style={styles.label}>{t('observations.count.label')}</Text>
               <TextInput
-                placeholder="1"
+                placeholder={t('observations.count.placeholder')}
                 keyboardType="number-pad"
                 style={styles.input}
                 placeholderTextColor="#94a3b8"
@@ -612,11 +643,15 @@ export default function ObservationsScreen() {
             const hasSelectedActivities = ACTIVITY_OPTIONS.some((option) => detail.activities[option]);
             return (
               <View key={`turtle-${index}`} style={styles.turtleCard}>
-                <Text style={styles.turtleHeader}>Turtle {index + 1}</Text>
+                <Text style={styles.turtleHeader}>
+                  {t('observations.turtle.header', { number: index + 1 })}
+                </Text>
 
-                <Text style={styles.label}>Species of turtle {index + 1}</Text>
+                <Text style={styles.label}>
+                  {t('observations.turtle.speciesLabel', { number: index + 1 })}
+                </Text>
                 <View style={styles.speciesList}>
-                  {SPECIES_OPTIONS.map((option) => {
+                  {speciesOptions.map((option) => {
                     const isSelected = detail.speciesId === option.id;
                     return (
                       <Pressable
@@ -628,8 +663,8 @@ export default function ObservationsScreen() {
                           {isSelected ? <View style={styles.radioInner} /> : null}
                         </View>
                         <View style={styles.speciesContent}>
-                          <Text style={styles.speciesName}>{option.name}</Text>
-                          <Text style={styles.speciesDescription}>{option.description}</Text>
+                          <Text style={styles.speciesName}>{option.translatedName}</Text>
+                          <Text style={styles.speciesDescription}>{option.translatedDescription}</Text>
                         </View>
                       </Pressable>
                     );
@@ -637,7 +672,9 @@ export default function ObservationsScreen() {
                 </View>
 
                 <View>
-                  <Text style={styles.label}>What is turtle {index + 1} doing?</Text>
+                  <Text style={styles.label}>
+                    {t('observations.turtle.activityLabel', { number: index + 1 })}
+                  </Text>
                   <Pressable
                     style={[styles.dropdown, activeActivityDropdown === index && styles.dropdownOpen]}
                     onPress={() => toggleActivityDropdown(index)}
@@ -664,7 +701,7 @@ export default function ObservationsScreen() {
                           >
                             {detail.activities[option] ? <View style={styles.checkboxDot} /> : null}
                           </View>
-                          <Text style={styles.checkboxLabel}>{option}</Text>
+                          <Text style={styles.checkboxLabel}>{activityLabel(option)}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -672,11 +709,13 @@ export default function ObservationsScreen() {
                 </View>
 
                 <View>
-                  <Text style={styles.label}>Notes about turtle {index + 1}</Text>
+                  <Text style={styles.label}>
+                    {t('observations.turtle.notesLabel', { number: index + 1 })}
+                  </Text>
                   <TextInput
                     multiline
                     numberOfLines={4}
-                    placeholder="Describe markings, behavior, or anything notable."
+                    placeholder={t('observations.turtle.notesPlaceholder')}
                     style={styles.textArea}
                     placeholderTextColor="#94a3b8"
                     value={detail.notes}
@@ -689,7 +728,7 @@ export default function ObservationsScreen() {
         </View>
 
         <View style={styles.step}>
-          <Text style={styles.stepTitle}>When did you see these turtles?</Text>
+          <Text style={styles.stepTitle}>{t('observations.when.title')}</Text>
           <View style={styles.fieldGroup}>
             <Pressable style={styles.datetimeButton} onPress={handlePickDateTime}>
               <Text style={styles.datetimeButtonText}>{formattedSeenAt}</Text>
@@ -698,7 +737,7 @@ export default function ObservationsScreen() {
         </View>
 
         <View style={styles.step}>
-          <Text style={styles.stepTitle}>Action taken</Text>
+          <Text style={styles.stepTitle}>{t('observations.action.title')}</Text>
           <View style={styles.fieldGroup}>
             {ACTION_OPTIONS.map((option) => (
               <Pressable
@@ -709,12 +748,12 @@ export default function ObservationsScreen() {
                 <View style={[styles.radioOuter, actionTaken === option && styles.radioSelected]}>
                   {actionTaken === option ? <View style={styles.radioInner} /> : null}
                 </View>
-                <Text style={styles.checkboxLabel}>{option}</Text>
+                <Text style={styles.checkboxLabel}>{actionLabels[option]}</Text>
               </Pressable>
             ))}
             {actionTaken === 'Other' ? (
               <TextInput
-                placeholder="If other, please explain."
+                placeholder={t('observations.action.otherPlaceholder')}
                 style={styles.input}
                 placeholderTextColor="#94a3b8"
                 value={actionOther}
@@ -725,11 +764,11 @@ export default function ObservationsScreen() {
         </View>
 
         <View style={styles.step}>
-          <Text style={styles.stepTitle}>Additional notes</Text>
+          <Text style={styles.stepTitle}>{t('observations.additional.title')}</Text>
           <TextInput
             multiline
             numberOfLines={5}
-            placeholder="Anything else we should know about the sighting?"
+            placeholder={t('observations.additional.placeholder')}
             style={styles.textArea}
             placeholderTextColor="#94a3b8"
             value={additionalNotes}
@@ -745,7 +784,7 @@ export default function ObservationsScreen() {
           {isSubmitting ? (
             <ActivityIndicator color="#f0fdf4" />
           ) : (
-            <Text style={styles.submitButtonText}>Submit observation</Text>
+            <Text style={styles.submitButtonText}>{t('observations.submit')}</Text>
           )}
         </Pressable>
       </ScrollView>
@@ -761,7 +800,7 @@ export default function ObservationsScreen() {
                 onChange={handleIOSDateChange}
               />
               <Pressable style={styles.pickerDone} onPress={() => setShowIOSPicker(false)}>
-                <Text style={styles.pickerDoneText}>Done</Text>
+                <Text style={styles.pickerDoneText}>{t('common.done')}</Text>
               </Pressable>
             </View>
           </View>
@@ -775,16 +814,16 @@ const styles = StyleSheet.create({
   container: {
     padding: 24,
     gap: 24,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#e9f3ec',
   },
   hero: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#0f2f24',
     borderRadius: 20,
     padding: 24,
     gap: 12,
   },
   kicker: {
-    color: '#bfdbfe',
+    color: '#cde5d5',
     textTransform: 'uppercase',
     fontWeight: '600',
     letterSpacing: 1.5,
@@ -798,18 +837,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     lineHeight: 22,
-    color: 'rgba(255,255,255,0.78)',
+    color: 'rgba(255,255,255,0.82)',
   },
   step: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f7fbf8',
     borderRadius: 18,
     padding: 20,
     gap: 16,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#cde5d5',
   },
   stepHeader: {
     flexDirection: 'row',
@@ -817,7 +858,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   stepBadge: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#166534',
     color: '#fff',
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -829,32 +870,32 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#0f2f24',
   },
   stepInstruction: {
     fontSize: 15,
-    color: '#475569',
+    color: '#1f3c2f',
     lineHeight: 22,
   },
   stepSource: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#1f4e37',
     fontStyle: 'italic',
   },
   warningBox: {
     borderRadius: 16,
     padding: 16,
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#fef3c7',
     gap: 6,
   },
   warningTitle: {
-    color: '#b91c1c',
+    color: '#92400e',
     fontWeight: '700',
     textTransform: 'uppercase',
     fontSize: 13,
   },
   warningCopy: {
-    color: '#7f1d1d',
+    color: '#92400e',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -866,7 +907,7 @@ const styles = StyleSheet.create({
   uploadButton: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2563eb',
+    borderColor: '#0f766e',
     paddingVertical: 14,
     paddingHorizontal: 16,
     justifyContent: 'center',
@@ -874,16 +915,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   uploadButtonText: {
-    color: '#2563eb',
+    color: '#0f766e',
     fontWeight: '700',
     textAlign: 'center',
   },
   primaryUploadButton: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: '#166534',
+    borderColor: '#166534',
   },
   primaryUploadButtonText: {
-    color: '#fff',
+    color: '#ecfdf3',
   },
   photoGrid: {
     flexDirection: 'row',
@@ -916,11 +957,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButton: {
-    borderColor: '#1e3a8a',
-    backgroundColor: '#e0e7ff',
+    borderColor: '#0f766e',
+    backgroundColor: '#d1fae5',
   },
   secondaryButtonText: {
-    color: '#1e3a8a',
+    color: '#0f2f24',
     fontWeight: '700',
   },
   fieldGroup: {
@@ -937,27 +978,27 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#0f2f24',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#0f172a',
-    backgroundColor: '#f8fafc',
+    color: '#0f2f24',
+    backgroundColor: '#f0f7f2',
   },
   textArea: {
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#0f172a',
-    backgroundColor: '#f8fafc',
+    color: '#0f2f24',
+    backgroundColor: '#f0f7f2',
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -967,16 +1008,16 @@ const styles = StyleSheet.create({
   speciesCard: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     padding: 16,
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f7fbf8',
   },
   speciesCardSelected: {
-    borderColor: '#2563eb',
-    backgroundColor: '#e0f2fe',
+    borderColor: '#166534',
+    backgroundColor: '#e6f6ed',
   },
   speciesContent: {
     flex: 1,
@@ -985,11 +1026,11 @@ const styles = StyleSheet.create({
   speciesName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#0f2f24',
   },
   speciesDescription: {
     fontSize: 14,
-    color: '#475569',
+    color: '#1f3c2f',
   },
   checkboxList: {
     gap: 12,
@@ -1004,62 +1045,62 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#94a3b8',
+    borderColor: '#86efac',
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    borderColor: '#2563eb',
-    backgroundColor: '#dbeafe',
+    borderColor: '#166534',
+    backgroundColor: '#bbf7d0',
   },
   checkboxDot: {
     width: 10,
     height: 10,
     borderRadius: 999,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#14532d',
   },
   checkboxLabel: {
     fontSize: 15,
-    color: '#334155',
+    color: '#0f2f24',
     flex: 1,
   },
   turtleCard: {
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     borderRadius: 16,
     padding: 16,
     gap: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f7fbf8',
   },
   turtleHeader: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#0f2f24',
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: '#fff',
+    backgroundColor: '#f7fbf8',
   },
   dropdownOpen: {
-    borderColor: '#2563eb',
+    borderColor: '#166534',
   },
   dropdownText: {
     fontSize: 15,
-    color: '#0f172a',
+    color: '#0f2f24',
   },
   dropdownPlaceholder: {
-    color: '#94a3b8',
+    color: '#1f3c2f',
   },
   dropdownOptions: {
     borderWidth: 1,
-    borderColor: '#cbd5f5',
+    borderColor: '#b5dec6',
     borderRadius: 12,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#f7fbf8',
     marginTop: 8,
     gap: 10,
   },
@@ -1068,7 +1109,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: '#94a3b8',
+    borderColor: '#86efac',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1076,10 +1117,10 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 999,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#14532d',
   },
   radioSelected: {
-    borderColor: '#2563eb',
+    borderColor: '#166534',
   },
   radioRow: {
     flexDirection: 'row',
@@ -1088,14 +1129,14 @@ const styles = StyleSheet.create({
   },
   datetimeButton: {
     borderWidth: 1,
-    borderColor: '#2563eb',
+    borderColor: '#14532d',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f0f7f2',
   },
   datetimeButtonText: {
-    color: '#1e3a8a',
+    color: '#0f2f24',
     fontWeight: '600',
   },
   submitButton: {
@@ -1104,9 +1145,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 18,
     alignItems: 'center',
-    shadowColor: '#14532d',
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
+    shadowColor: '#0f3f2d',
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
     elevation: 4,
   },
