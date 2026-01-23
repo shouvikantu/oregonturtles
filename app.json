@@ -9,7 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shouvikantu.oregonturtles",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photos to let you upload turtle observations.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos of turtles.",
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to tag where you found the turtle.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3ab72d2c-0411-414e-8250-44e6377ac82d"
+      }
     }
   }
 }
